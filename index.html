@@ -1,1 +1,377 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ma Boutique</title>
+<style>
+  :root {
+    --bg-color: #f5f6f8;
+    --primary-red: #ff4d4f;
+    --primary-blue: #3b82f6;
+    --text-main: #333333;
+    --text-sub: #888888;
+    --border-color: #ebeef5;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background-color: var(--bg-color); color: var(--text-main); }
+  a { text-decoration: none; color: inherit; }
+
+  .sticky-header {
+    position: sticky; top: 0; z-index: 1000;
+    background-color: var(--bg-color);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    padding-bottom: 5px;
+  }
+
+  .header-container {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 20px 40px; gap: 20px; flex-wrap: wrap;
+  }
+
+  .brand { font-size: 20px; font-weight: 900; letter-spacing: 0.5px; flex-shrink: 0; }
+
+  .search-box { flex: 1; position: relative; min-width: 220px; }
+  .search-box input {
+    width: 100%; padding: 12px 20px 12px 40px; border-radius: 25px;
+    border: 1px solid #e5e7eb; outline: none; font-size: 14px; box-sizing: border-box;
+    transition: box-shadow 0.3s;
+  }
+  .search-box input:focus { box-shadow: 0 0 0 3px rgba(59,130,246,0.1); border-color: #93c5fd; }
+  .search-icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-sub); }
+
+  .filter-container { padding: 5px 40px 15px; display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none; }
+  .filter-container::-webkit-scrollbar { display: none; }
+  .filter-btn {
+    padding: 10px 24px; border-radius: 25px; background: white; border: 1px solid #e5e7eb;
+    color: var(--text-main); font-weight: 600; cursor: pointer; white-space: nowrap;
+    transition: all 0.3s ease; display: flex; align-items: center; gap: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02); font-size: 14px;
+  }
+  .filter-btn:hover { border-color: var(--primary-blue); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(59,130,246,0.12); }
+  .filter-btn.active { background: #1a1a1a; color: white; border-color: #1a1a1a; box-shadow: 0 6px 16px rgba(0,0,0,0.18); }
+
+  .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 10px 16px 40px; }
+  @media (max-width: 480px) {
+    .grid-container { gap: 10px; padding: 10px 10px 40px; }
+    .info-box { padding: 8px; }
+    .product-title { font-size: 12px; }
+    .product-price { font-size: 13px; }
+    .btn-view { font-size: 11px; padding: 7px 0; }
+    .cta-container { padding: 0 8px 10px; }
+  }
+  .product-card {
+    background: white; border-radius: 12px; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s;
+    display: flex; flex-direction: column; justify-content: space-between; border: 1px solid transparent; height: 100%;
+  }
+  .product-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); border-color: var(--border-color); }
+  .product-content { display: flex; flex-direction: column; flex: 1; }
+  .image-box { width: 100%; padding-top: 100%; position: relative; background-color: #f9fafb; }
+  .product-img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; padding: 10px; }
+  .info-box { padding: 12px; flex: 1; display: flex; flex-direction: column; justify-content: flex-start; gap: 4px; }
+  .product-title { font-size: 14px; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.3; }
+  .product-price { font-size: 16px; font-weight: bold; color: var(--primary-red); margin: 0; }
+  .cta-container { padding: 0 15px 15px; display: flex; flex-direction: column; gap: 8px; }
+  .btn-view, .btn-order {
+    width: 100%; padding: 9px 0; border: 1px solid transparent;
+    border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; text-align: center;
+    transition: all 0.3s ease; display: block;
+  }
+  .btn-view { background: #f4f5f8; color: #4b5563; }
+  .btn-view:hover { background: #e5e7eb; }
+  .btn-order { background: #0070ba; color: white; }
+  .btn-order:hover { background: #005ea6; }
+
+  .empty-state { padding: 60px 40px; text-align: center; color: var(--text-sub); display: none; }
+
+  /* ---- Fenêtre de commande (modale) ---- */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 2000; align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: white; border-radius: 16px; padding: 24px; width: 100%; max-width: 400px;
+    max-height: 90vh; overflow-y: auto;
+  }
+  .modal-box h2 { margin: 0 0 4px; font-size: 18px; }
+  .modal-product-name { color: var(--text-sub); font-size: 14px; margin: 0 0 16px; }
+  .modal-price { font-weight: bold; color: var(--primary-red); }
+  .form-field { margin-bottom: 12px; }
+  .form-field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .form-field input, .form-field textarea {
+    width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #e5e7eb;
+    font-size: 14px; font-family: inherit; outline: none;
+  }
+  .form-field input:focus, .form-field textarea:focus { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+  .form-field textarea { resize: vertical; min-height: 60px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+  .modal-actions button {
+    flex: 1; padding: 12px 0; border-radius: 20px; border: none; font-weight: 700;
+    font-size: 14px; cursor: pointer;
+  }
+  .btn-cancel { background: #f4f5f8; color: #4b5563; }
+  .btn-cancel:hover { background: #e5e7eb; }
+  .btn-pay { background: #0070ba; color: white; }
+  .btn-pay:hover { background: #005ea6; }
+  .form-error { color: var(--primary-red); font-size: 12px; margin: -6px 0 12px; display: none; }
+  .paypal-note { font-size: 12px; color: #92600a; background: #fff7e6; border: 1px solid #ffe4a3; border-radius: 10px; padding: 10px 12px; margin: 0 0 12px; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+<div class="sticky-header">
+  <header class="header-container">
+    <div class="brand">Ma Boutique</div>
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Rechercher un produit...">
+    </div>
+  </header>
+  <nav class="filter-container" id="filterContainer">
+    <!-- Généré automatiquement à partir des catégories des produits -->
+  </nav>
+</div>
+
+<main class="grid-container" id="grid">
+  <!-- Généré automatiquement par le script à partir du tableau PRODUCTS -->
+</main>
+
+<p class="empty-state" id="emptyState">Aucun produit ne correspond à votre recherche.</p>
+
+<!-- Fenêtre de commande -->
+<div class="modal-overlay" id="orderModal">
+  <div class="modal-box">
+    <h2>Finaliser la commande</h2>
+    <p class="modal-product-name" id="modalProductName">Produit — <span class="modal-price" id="modalProductPrice"></span></p>
+
+    <div class="form-field">
+      <label for="fieldNom">Nom</label>
+      <input type="text" id="fieldNom" placeholder="Nom">
+    </div>
+    <div class="form-field">
+      <label for="fieldPrenom">Prénom</label>
+      <input type="text" id="fieldPrenom" placeholder="Prénom">
+    </div>
+    <div class="form-field">
+      <label for="fieldTel">Numéro de téléphone</label>
+      <input type="tel" id="fieldTel" placeholder="06 12 34 56 78">
+    </div>
+    <div class="form-field">
+      <label for="fieldAdresse">Adresse de livraison</label>
+      <textarea id="fieldAdresse" placeholder="Numéro, rue, code postal, ville"></textarea>
+    </div>
+    <p class="form-error" id="formError">Merci de remplir tous les champs.</p>
+    <p class="paypal-note">⚠️ Sur l'écran PayPal, choisis bien l'option <strong>« Envoyer de l'argent à un ami » / « Amis et famille »</strong> pour valider le paiement.</p>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" id="btnCancel">Annuler</button>
+      <button class="btn-pay" id="btnPay">Payer avec PayPal</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* =======================================================
+     TES PRODUITS — c'est la SEULE partie à modifier.
+     Duplique un bloc { ... } pour chaque nouveau produit.
+     Laisse "image" vide ("") si tu n'as pas encore de photo.
+     "price" doit contenir un nombre (ex: "12" ou "19.90") suivi
+     ou non du symbole € — il est utilisé pour calculer le montant PayPal.
+     ======================================================= */
+  const PRODUCTS = [
+    {
+      name: "Produit exemple 1",
+      price: "12€",
+      category: "T-SHIRT",
+      image: "",
+      link: "https://exemple.com/produit-1"
+    },
+    {
+      name: "Produit exemple 2",
+      price: "19,90€",
+      category: "ACCESSOIRES",
+      image: "",
+      link: "https://exemple.com/produit-2"
+    },
+    {
+      name: "Produit exemple 3",
+      price: "8€",
+      category: "ACCESSOIRES",
+      image: "",
+      link: "https://exemple.com/produit-3"
+    }
+  ];
+  /* ======================================================= */
+
+  /* ============ TES INFOS DE PAIEMENT — À REMPLIR ============
+     PAYPAL_USERNAME : ton identifiant PayPal.Me (sans le "@")
+       → tu le trouves ou le crées sur https://paypal.me
+       → exemple : si ton lien est paypal.me/JeanDupont45, mets "JeanDupont45"
+     SELLER_EMAIL : ton adresse email, pour recevoir le nom/adresse/téléphone
+       de chaque commande dès que le client clique sur "Payer avec PayPal"
+     ============================================================ */
+  const PAYPAL_USERNAME = "TonPseudoPayPal";
+  const SELLER_EMAIL = "ton-email@exemple.com";
+  /* ============================================================ */
+
+  /* Liste fixe des catégories affichées dans les filtres.
+     Ajoute ou enlève des catégories ici si besoin. */
+  const CATEGORIES = [
+    "T-SHIRT",
+    "SHORT",
+    "PANTALON",
+    "PULL",
+    "CHAUSSURES",
+    "SAC",
+    "DOUDOUNE",
+    "ACCESSOIRES"
+  ];
+
+  const grid = document.getElementById('grid');
+  const filterContainer = document.getElementById('filterContainer');
+  const searchInput = document.getElementById('searchInput');
+  const emptyState = document.getElementById('emptyState');
+  const PLACEHOLDER_IMG = "https://placehold.co/400x400?text=Photo";
+
+  let activeCat = 'ALL';
+  let currentOrderProduct = null;
+
+  function buildFilters() {
+    const categories = ['ALL', ...CATEGORIES];
+    filterContainer.innerHTML = categories.map(cat => {
+      const label = cat === 'ALL' ? 'Tout' : cat;
+      const activeClass = cat === 'ALL' ? 'active' : '';
+      return `<button class="filter-btn ${activeClass}" data-cat="${cat}">${label}</button>`;
+    }).join('');
+
+    filterContainer.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterContainer.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeCat = btn.dataset.cat;
+        renderProducts();
+      });
+    });
+  }
+
+  function renderProducts() {
+    const term = searchInput.value.trim().toLowerCase();
+
+    const filtered = PRODUCTS.filter(p => {
+      const matchesCat = activeCat === 'ALL' || p.category === activeCat;
+      const matchesSearch = p.name.toLowerCase().includes(term);
+      return matchesCat && matchesSearch;
+    });
+
+    grid.innerHTML = filtered.map((p, i) => `
+      <div class="product-card">
+        <a href="${p.link}" class="product-content" target="_blank">
+          <div class="image-box">
+            <img src="${p.image || PLACEHOLDER_IMG}" alt="${p.name}" class="product-img" loading="lazy">
+          </div>
+          <div class="info-box">
+            <h3 class="product-title">${p.name}</h3>
+            <p class="product-price">${p.price}</p>
+          </div>
+        </a>
+        <div class="cta-container">
+          <a href="${p.link}" class="btn-view" target="_blank">Voir le produit</a>
+          <button class="btn-order" data-index="${PRODUCTS.indexOf(p)}">Commander</button>
+        </div>
+      </div>
+    `).join('');
+
+    grid.querySelectorAll('.btn-order').forEach(btn => {
+      btn.addEventListener('click', () => openOrderModal(PRODUCTS[btn.dataset.index]));
+    });
+
+    emptyState.style.display = filtered.length === 0 ? 'block' : 'none';
+  }
+
+  /* ---- Gestion de la fenêtre de commande ---- */
+  const orderModal = document.getElementById('orderModal');
+  const modalProductName = document.getElementById('modalProductName');
+  const modalProductPrice = document.getElementById('modalProductPrice');
+  const fieldNom = document.getElementById('fieldNom');
+  const fieldPrenom = document.getElementById('fieldPrenom');
+  const fieldTel = document.getElementById('fieldTel');
+  const fieldAdresse = document.getElementById('fieldAdresse');
+  const formError = document.getElementById('formError');
+
+  function openOrderModal(product) {
+    currentOrderProduct = product;
+    modalProductName.childNodes[0].textContent = product.name + " — ";
+    modalProductPrice.textContent = product.price;
+    fieldNom.value = '';
+    fieldPrenom.value = '';
+    fieldTel.value = '';
+    fieldAdresse.value = '';
+    formError.style.display = 'none';
+    orderModal.classList.add('open');
+  }
+
+  function closeOrderModal() {
+    orderModal.classList.remove('open');
+    currentOrderProduct = null;
+  }
+
+  document.getElementById('btnCancel').addEventListener('click', closeOrderModal);
+  orderModal.addEventListener('click', (e) => {
+    if (e.target === orderModal) closeOrderModal();
+  });
+
+  document.getElementById('btnPay').addEventListener('click', () => {
+    const nom = fieldNom.value.trim();
+    const prenom = fieldPrenom.value.trim();
+    const tel = fieldTel.value.trim();
+    const adresse = fieldAdresse.value.trim();
+
+    if (!nom || !prenom || !tel || !adresse) {
+      formError.style.display = 'block';
+      return;
+    }
+    formError.style.display = 'none';
+
+    const product = currentOrderProduct;
+
+    // Extrait juste le nombre du prix (ex: "19,90€" -> 19.90)
+    const amount = parseFloat(product.price.replace(',', '.').replace(/[^0-9.]/g, ''));
+
+    // Récapitulatif de commande envoyé par email au vendeur
+    const subject = "Nouvelle commande : " + product.name;
+    const body =
+      "Produit : " + product.name + "\n" +
+      "Prix : " + product.price + "\n\n" +
+      "Nom : " + nom + "\n" +
+      "Prénom : " + prenom + "\n" +
+      "Téléphone : " + tel + "\n" +
+      "Adresse : " + adresse + "\n\n" +
+      "Rappel : paiement demandé en \"Amis et famille\" sur PayPal.";
+
+    const mailtoLink = "mailto:" + encodeURIComponent(SELLER_EMAIL) +
+      "?subject=" + encodeURIComponent(subject) +
+      "&body=" + encodeURIComponent(body);
+
+    // Lien de paiement PayPal.Me avec le montant du produit
+    const paypalLink = "https://www.paypal.com/paypalme/" + encodeURIComponent(PAYPAL_USERNAME) +
+      (isNaN(amount) ? "" : "/" + amount.toFixed(2) + "EUR");
+
+    // 1. Ouvre l'app mail avec la commande pré-remplie (à envoyer par le client)
+    window.location.href = mailtoLink;
+
+    // 2. Ouvre PayPal dans un nouvel onglet pour le paiement
+    window.open(paypalLink, '_blank');
+
+    closeOrderModal();
+  });
+
+  searchInput.addEventListener('input', renderProducts);
+
+  buildFilters();
+  renderProducts();
+</script>
+
+</body>
+</html>
 
